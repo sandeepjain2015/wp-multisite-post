@@ -1,32 +1,24 @@
 <?php
 /**
- * @package multisite
- */
-/*
- Plugin Name: WP Multisite Post 
- Plugin URI: 
- Description: Create and edit single posts for multiple sites in your WordPress network.
- Author: Sandeep jain
- Version: 1.0
- Author URI: http://bestthemeandplugins.com/
+ * Plugin Name: WP Multisite Post 
+ * Description: Create and edit single posts for multiple sites in your WordPress network.
+ * Author: Sandeep jain
+ * Version:1.0
+ * License: GPL
  */
 
 define( 'WPMP_TABLENAME', 'multisite_post' );
-// We only need this in the admin.
-if ( is_admin() ) {
-	include_once 'inc/class-wpmp-admin.php';
-	new WPMP_Admin();
-}
 define( 'WPMP__PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 register_activation_hook( __FILE__, 'wpmp_install_table' );
 
 if ( ! function_exists( 'wpmp_install_table' ) ) {
+	/**
+	 * Create new table if not exist.
+	 */
 	function wpmp_install_table() {
 		global $wpdb;
-		
 		$table = $wpdb->base_prefix . WPMP_TABLENAME;
-		
-		if ( $wpdb->get_var( "show tables like $table" ) != $table ) {
+		if ( $wpdb->get_var( "show tables like $table" ) !== $table ) {
 			$sql = "CREATE TABLE $table ( 
 				`id` MEDIUMINT NOT NULL AUTO_INCREMENT , 
 				`blog_id` MEDIUMINT UNSIGNED NOT NULL , 
@@ -34,22 +26,22 @@ if ( ! function_exists( 'wpmp_install_table' ) ) {
 				`connection_id` VARCHAR(25) NOT NULL , 
 				PRIMARY KEY (`id`)
 			)";
-		
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );
 		}
 	}
 }
-
-// Older versions of WP do on not have this function.
 if ( ! function_exists( 'wp_get_sites' ) ) {
+	/**
+	 * Wp get all sub sites.
+	 * @param $args array for check network data.
+	 * 
+	 */
 	function wp_get_sites( $args = array() ) {
 		global $wpdb;
-
 		if ( wp_is_large_network() ) {
 			return array();
 		}
-
 		$defaults = array(
 			'network_id' => $wpdb->siteid,
 			'public'     => null,
@@ -60,11 +52,8 @@ if ( ! function_exists( 'wp_get_sites' ) ) {
 			'limit'      => 99,
 			'offset'     => 0,
 		);
-
-		$args = wp_parse_args( $args, $defaults );
-
-		$query = "SELECT * FROM $wpdb->blogs WHERE 1=1 ";
-
+		$args     = wp_parse_args( $args, $defaults );
+		$query    = "SELECT * FROM $wpdb->blogs WHERE 1=1 ";
 		if ( isset( $args['network_id'] ) && ( is_array( $args['network_id'] ) || is_numeric( $args['network_id'] ) ) ) {
 			$network_ids = implode( ',', wp_parse_id_list( $args['network_id'] ) );
 			$query      .= "AND site_id IN ($network_ids) ";
@@ -110,25 +99,28 @@ function trash_click_error() {
 	?>
 <script>
 	jQuery(function($) {
-	  jQuery('#delete-action a').unbind();
-		jQuery('#delete-action a').click(function(event) {
-		  var post_id =jQuery('[name=connection_id]').val();
-	  var multi_array =[];
-		   jQuery('.wpmp-site-list input:checkbox:checked').each(function(){
-			   multi_array.push(jQuery(this).val());
-			  });
-		  jQuery.ajax({type:'post',url:'<?php echo admin_url( 'admin-ajax.php' ); ?>',data:{action:'send_multisite_id',
-					post_id:post_id,site_id:multi_array},
-				success:function(msg){
-				  }
-			})
-		 });
-	});
+		jQuery('#delete-action a').unbind();
+			jQuery('#delete-action a').click(function(event) {
+				var post_id =jQuery('[name=connection_id]').val();
+				var multi_array =[];
+				jQuery('.wpmp-site-list input:checkbox:checked').each(function(){
+					multi_array.push(jQuery(this).val());
+				});
+				jQuery.ajax({type:'post',url:'<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>',data:{action:'send_multisite_id',
+						post_id:post_id,site_id:multi_array},
+					success:function(msg){
+						}
+				})
+			});
+		});
 </script>
 	<?php
 }
 add_action( 'wp_ajax_no_priv_send_multisite_id', 'send_multisite_id' );
 add_action( 'wp_ajax_send_multisite_id', 'send_multisite_id' );
+/**
+	* Send multisite id.
+	*/
 function send_multisite_id() {
 	global $wpdb;
 	$connection_id = $_POST['post_id'];
@@ -140,8 +132,8 @@ function send_multisite_id() {
 		global $wpdb;
 		$data = $wpdb->get_results( $sql );
 		foreach ( $data as $multi_new_id ) {
-				   $sql_delete = "delete from $wpdb->base_prefix{$multi_new_id->blog_id}_posts where ID={$multi_new_id->post_id}";
-				   $wpdb->query( $sql_delete );
+				$sql_delete = "delete from $wpdb->base_prefix{$multi_new_id->blog_id}_posts where ID={$multi_new_id->post_id}";
+				$wpdb->query( $sql_delete );
 		}
 	}}
 ?>
